@@ -966,23 +966,18 @@ function buildUserCreatedMarkdown(payload: TelegramUserCreatedPayload): string {
 }
 
 function buildInboundEmailMarkdown(payload: TelegramInboundEmailPayload): string {
-  const subjectRaw = payload.subject ? compactWhitespace(payload.subject) : '(No Subject)';
-  const subject = truncate(subjectRaw, 120);
-  const snippetRaw = payload.snippet ? compactWhitespace(payload.snippet) : '(no snippet)';
-  const snippet = truncate(snippetRaw, 180);
-  const generatedAt = new Date().toISOString();
+  const subject = truncate(compactWhitespace(payload.subject || '(No Subject)'), 120);
+  const senderAddress = extractEmailAddress(payload.sender);
+  const recipientAddress = extractEmailAddress(payload.recipient);
 
   return [
-    '*EMAIL MASUK*',
-    `*Subjek:* ${escapeMarkdownV2(subject)}`,
-    `*Dari:* ${inlineCodeMd(payload.sender)}`,
-    `*Ke:* ${inlineCodeMd(payload.recipient)}`,
-    `*Waktu:* ${inlineCodeMd(generatedAt)}`,
-    `*ID:* ${inlineCodeMd(payload.emailId)}`,
+    '*📬 EMAIL MASUK*',
     '',
-    `*Ringkasan:* ${escapeMarkdownV2(snippet)}`,
+    `*Dari    :* ${escapeMarkdownV2(senderAddress)}`,
+    `*Ke      :* ${escapeMarkdownV2(recipientAddress)}`,
+    `*Subject :* ${escapeMarkdownV2(subject)}`,
     '',
-    `*Aksi:* /readmail ${inlineCodeMd(payload.emailId)}`
+    `*Baca Email :* ${inlineCodeMd(`/readmail ${payload.emailId}`)}`
   ].join('\n');
 }
 
@@ -1303,6 +1298,22 @@ function extractUsername(email: string): string {
   const atIndex = email.indexOf('@');
   if (atIndex <= 0) return email;
   return email.slice(0, atIndex);
+}
+
+/**
+ * Extracts a clean email address from a potentially decorated sender/recipient string.
+ * Handles formats like:
+ *   - `"Display Name" <user@example.com>` → `user@example.com`
+ *   - `<user@example.com>` → `user@example.com`
+ *   - `user@example.com` → `user@example.com`
+ */
+function extractEmailAddress(raw: string): string {
+  const trimmed = raw.trim();
+  const angleBracket = trimmed.match(/<([^>]+)>/);
+  if (angleBracket?.[1]) {
+    return angleBracket[1].trim();
+  }
+  return trimmed;
 }
 
 function escapeMarkdownV2(value: string): string {

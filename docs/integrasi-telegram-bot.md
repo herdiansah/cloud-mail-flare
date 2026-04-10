@@ -10,8 +10,9 @@ Untuk urutan deploy production end-to-end (termasuk domain, D1, secret, dan Emai
 Integrasi Telegram di project ini menyediakan:
 
 1. Notifikasi email masuk dengan format MarkdownV2:
-- Menampilkan ringkasan rapi: subjek, pengirim, penerima, waktu, dan email id.
-- Menampilkan snippet singkat + aksi cepat `/readmail <email_id>`.
+- Format ringkas dan bersih: pengirim, penerima, dan subjek ditampilkan dalam baris terpisah.
+- Field "Dari" dan "Ke" menampilkan alamat email bersih — routing header panjang seperti `"Name" <email@domain>` secara otomatis dipangkas menjadi `email@domain`.
+- Baris "Baca Email" menampilkan perintah `/readmail <email_id>` dalam format **monospace** agar mudah dicopy-paste.
 - Menyediakan inline keyboard aksi: `Star`, `Archive`, `Mark as Read`, `Soft Delete`.
 
 2. Notifikasi user baru saat dibuat dari dashboard admin:
@@ -498,8 +499,18 @@ curl -X POST "https://<PUBLIC_URL>/api/telegram/notify-email" \
 
 7. Uji tombol **Test Connection** di halaman worker settings.
 8. Pastikan Anda menerima 2 pesan di Telegram:
-- pesan test koneksi bot
-- pesan test notify-email (format email masuk + inline actions)
+   - pesan test koneksi bot
+   - pesan test notify-email dengan format:
+     ```
+     📬 EMAIL MASUK
+
+     Dari    : alice@example.com
+     Ke      : demo123@mailflare.local
+     Subject : Test inbound
+
+     Baca Email : `/readmail eml_test_001`
+     ```
+   - inline keyboard `Star / Archive / Mark as Read / Soft Delete` muncul di bawah pesan
 9. Pastikan badge webhook menunjukkan `Connected (live)` saat webhook valid.
 
 ## 12) Troubleshooting
