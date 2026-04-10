@@ -76,7 +76,7 @@ function __mailflareNormalizeAddress(value) {
   const angleMatch = raw.match(/<([^>]+)>/);
   const addr = angleMatch ? angleMatch[1] : raw;
   const single = addr.split(',')[0].split(';')[0];
-  return single.replace(/\s+/g, '');
+  return single.replace(new RegExp('\\\\s+', 'g'), '');
 }
 
 async function __mailflareReadRawMime(message) {
@@ -105,7 +105,7 @@ function __mailflareDeriveBodyText(rawMime, fallbackText) {
   const cleaned = body
     .replace(/=\\r?\\n/g, '')
     .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(new RegExp('\\\\s+', 'g'), ' ')
     .trim();
   if (!cleaned) {
     return fallback;
@@ -130,7 +130,8 @@ function __mailflareExtractLocalPart(address) {
   return local;
 }
 
-async function __mailflareResolveRecipient(db, recipient) {
+async function __mailflareResolveRecipient(db, recipient, authorativeDomain) {
+  // 1. Exact match (email = recipient)
   const exact = await db
     .prepare('SELECT email FROM users WHERE lower(email) = ? LIMIT 1')
     .bind(recipient)
@@ -144,6 +145,7 @@ async function __mailflareResolveRecipient(db, recipient) {
     return '';
   }
 
+  // 2. Match by exact local-part (ignoring domain) — only if exactly one user has this local-part
   const localMatches = await db
     .prepare(
       'SELECT email ' +
@@ -157,16 +159,61 @@ async function __mailflareResolveRecipient(db, recipient) {
     .all();
 
   const results = (localMatches && localMatches.results) || [];
-  if (results.length !== 1) {
-    return '';
+  if (results.length === 1) {
+    return String(results[0].email || '').trim().toLowerCase();
   }
 
-  return String(results[0].email || '').trim().toLowerCase();
+  // 3. Domain-corrected fallback: if we know the authoritative domain, try
+  //    local-part@authoritativeDomain directly — handles domain typos in To: header.
+  //    (message.to is the To: header, not SMTP RCPT TO which is inaccessible in CF Email Workers)
+  if (authorativeDomain) {
+    const correctedAddr = localPart + '@' + String(authorativeDomain).trim().toLowerCase();
+    const corrected = await db
+      .prepare('SELECT email FROM users WHERE lower(email) = ? LIMIT 1')
+      .bind(correctedAddr)
+      .first();
+    if (corrected && corrected.email) {
+      console.info(\`[mailflare-email] Resolved via domain-corrected fallback: \${recipient} → \${corrected.email} (domain typo in To: header)\`);
+      return String(corrected.email).trim().toLowerCase();
+    }
+  }
+
+  return '';
 }
 
 async function __mailflareHandleInboundEmail(message, env, ctx, worker) {
-  const recipient = __mailflareNormalizeAddress(message && message.to);
-  if (!recipient) {
+  const authorativeDomain = String((env && env.MAILFLARE_USER_DOMAIN) || '').trim().toLowerCase();
+
+  // CRITICAL: In Cloudflare Email Workers, message.to is an object (not a plain string) where:
+  //   - toJSON() / JSON.stringify → SMTP envelope RCPT TO  (the correct address CF received)
+  //   - toString() / String()    → formatted To: header    (may contain sender typos!)
+  // We MUST use the JSON-serialized value to get the real envelope recipient.
+  const toEnvelope = (() => {
+    try {
+      const v = message && message.to;
+      if (!v) return '';
+      // JSON round-trip: forces toJSON() path → gives envelope RCPT TO
+      const parsed = JSON.parse(JSON.stringify(v));
+      return typeof parsed === 'string' ? parsed : '';
+    } catch {
+      return '';
+    }
+  })();
+
+  const candidateRaw = [
+    toEnvelope,                                              // SMTP envelope RCPT TO ← primary
+    message && message.to,                                   // toString() → To: header (fallback)
+    message && __mailflareGetHeader(message, 'delivered-to'),
+    message && __mailflareGetHeader(message, 'x-original-to'),
+    message && __mailflareGetHeader(message, 'x-forwarded-to')
+  ];
+  const candidates = candidateRaw
+    .map((v) => __mailflareNormalizeAddress(v))
+    .filter((v, i, arr) => v && arr.indexOf(v) === i); // unique, non-empty
+
+  console.debug(\`[mailflare-email] envelope=\${JSON.stringify(toEnvelope)} toString=\${JSON.stringify(String(message && message.to || ''))} candidates=\${JSON.stringify(candidates)}\`);
+
+  if (candidates.length === 0) {
     __mailflareReject(message, 'Invalid recipient');
     console.warn('[mailflare-email] Rejected inbound email: invalid recipient address.');
     return;
@@ -179,11 +226,28 @@ async function __mailflareHandleInboundEmail(message, env, ctx, worker) {
     return;
   }
 
-  const resolvedRecipient = await __mailflareResolveRecipient(db, recipient).catch(() => '');
+  // Try each candidate; domain-corrected fallback is tried inside resolveRecipient.
+  let resolvedRecipient = '';
+  let resolvedFrom = '';
+  for (const candidate of candidates) {
+    const resolved = await __mailflareResolveRecipient(db, candidate, authorativeDomain).catch(() => '');
+    if (resolved) {
+      resolvedRecipient = resolved;
+      resolvedFrom = candidate;
+      break;
+    }
+  }
+
+  const recipient = resolvedFrom || candidates[0];
+
   if (!resolvedRecipient) {
     __mailflareReject(message, 'Unknown recipient');
-    console.info(\`[mailflare-email] Dropped inbound email for unknown recipient: \${recipient}\`);
+    console.info(\`[mailflare-email] Dropped inbound email for unknown recipient: \${recipient} (tried: \${candidates.join(', ')}, domain: \${authorativeDomain || 'unknown'})\`);
     return;
+  }
+
+  if (resolvedFrom !== candidates[0]) {
+    console.info(\`[mailflare-email] Resolved recipient via fallback header: \${resolvedFrom} → \${resolvedRecipient}\`);
   }
 
   const internalSecret = String((env && env.TELEGRAM_INTERNAL_SECRET) || '').trim();
