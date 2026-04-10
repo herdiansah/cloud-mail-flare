@@ -592,16 +592,16 @@ async function handleInboxCommand(context: TelegramCommandContext, args: string[
   }
 
   const lines = rows.map((row, index) => {
-    const emailId = String(row.id ?? '');
-    const sender = compactWhitespace(String(row.sender ?? ''));
-    const subject = compactWhitespace(String(row.subject ?? '(No Subject)'));
-    const snippet = compactWhitespace(String(row.snippet ?? ''));
+    const emailId = escapeCode(truncate(String(row.id ?? ''), 96));
+    const sender = escapeCode(truncate(compactWhitespace(String(row.sender ?? '')), 96));
+    const subject = escapeCode(truncate(compactWhitespace(String(row.subject ?? '(No Subject)')), 96));
+    const snippet = escapeCode(truncate(compactWhitespace(String(row.snippet ?? '')), 120));
     return [
       `[${index + 1}]`,
-      `id     : ${truncate(emailId, 96)}`,
-      `from   : ${truncate(sender, 96)}`,
-      `subject: ${truncate(subject, 96)}`,
-      `snippet: ${truncate(snippet, 120)}`
+      `id     : ${emailId}`,
+      `from   : ${sender}`,
+      `subject: ${subject}`,
+      `snippet: ${snippet}`
     ].join('\n');
   });
 
@@ -1323,7 +1323,8 @@ function escapeCode(value: string): string {
 }
 
 function sanitizeCodeBlock(value: string): string {
-  return value.replace(/```/g, "'''");
+  // Per Telegram MarkdownV2 spec: inside pre/code blocks, only '`' and '\' must be escaped.
+  return value.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
 }
 
 function inlineCodeMd(value: string): string {
