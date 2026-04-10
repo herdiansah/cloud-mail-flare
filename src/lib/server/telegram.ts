@@ -861,9 +861,7 @@ async function writeEmailStatusHistory(
 }
 
 async function getEmailById(db: D1Database, emailId: string): Promise<TelegramEmailDbRecord | null> {
-  const row = await db
-    .prepare(
-      `
+  const query = `
       SELECT
         e.id,
         u.email AS user_email,
@@ -882,10 +880,14 @@ async function getEmailById(db: D1Database, emailId: string): Promise<TelegramEm
       JOIN users u ON u.id = e.user_id
       WHERE e.id = ?
       LIMIT 1
-    `
-    )
-    .bind(emailId)
-    .first<Record<string, unknown>>();
+    `;
+
+  // Try exact match first, then LIKE prefix match (for IDs truncated in Telegram callback_data).
+  let row = await db.prepare(query).bind(emailId).first<Record<string, unknown>>();
+  if (!row) {
+    const likeQuery = query.replace('e.id = ?', "e.id LIKE ? || '%'");
+    row = await db.prepare(likeQuery).bind(emailId).first<Record<string, unknown>>();
+  }
 
   if (!row) {
     return null;
@@ -976,14 +978,17 @@ function buildInboundEmailMarkdown(payload: TelegramInboundEmailPayload): string
 }
 
 function buildEmailActionKeyboard(emailId: string): TelegramInlineKeyboard {
+  // Telegram callback_data limit: 64 bytes.
+  // Longest prefix 'em:archive:' = 11 chars → max 53 chars for the ID.
+  const cbId = emailId.slice(0, 53);
   return [
     [
-      { text: 'Star', callback_data: `em:star:${emailId}` },
-      { text: 'Archive', callback_data: `em:archive:${emailId}` }
+      { text: 'Star', callback_data: `em:star:${cbId}` },
+      { text: 'Archive', callback_data: `em:archive:${cbId}` }
     ],
     [
-      { text: 'Mark as Read', callback_data: `em:read:${emailId}` },
-      { text: 'Soft Delete', callback_data: `em:delete:${emailId}` }
+      { text: 'Mark as Read', callback_data: `em:read:${cbId}` },
+      { text: 'Soft Delete', callback_data: `em:delete:${cbId}` }
     ]
   ];
 }
