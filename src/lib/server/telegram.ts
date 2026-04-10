@@ -593,7 +593,7 @@ async function handleInboxCommand(context: TelegramCommandContext, args: string[
 
   const lines = rows.map((row, index) => {
     const num = escapeMarkdownV2(String(index + 1));
-    const emailId = truncate(String(row.id ?? ''), 40);
+    const emailId = String(row.id ?? ''); // full ID — needed for `readmail <id>`
     const sender = escapeMarkdownV2(truncate(compactWhitespace(String(row.sender ?? '')), 80));
     const subject = escapeMarkdownV2(truncate(compactWhitespace(String(row.subject ?? '(No Subject)')), 80));
     return [
