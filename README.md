@@ -14,16 +14,16 @@ Seluruh aplikasi berjalan sebagai satu **Cloudflare Worker** — tidak perlu ser
 
 ## ✨ Fitur Utama
 
-| Fitur | Keterangan |
-|---|---|
-| 📥 Inbox Email | Menerima dan membaca email masuk via Cloudflare Email Routing |
-| 👤 Manajemen Pengguna | Admin bisa membuat & menghapus akun pengguna |
-| 🔐 Login Aman | Session berbasis cookie + CAPTCHA Cloudflare Turnstile |
-| 🤖 Notifikasi Telegram | Email masuk langsung dikirim ke chat Telegram Anda |
+| Fitur                  | Keterangan                                                           |
+| ---------------------- | -------------------------------------------------------------------- |
+| 📥 Inbox Email         | Menerima dan membaca email masuk via Cloudflare Email Routing        |
+| 👤 Manajemen Pengguna  | Admin bisa membuat & menghapus akun pengguna                         |
+| 🔐 Login Aman          | Session berbasis cookie + CAPTCHA Cloudflare Turnstile               |
+| 🤖 Notifikasi Telegram | Email masuk langsung dikirim ke chat Telegram Anda                   |
 | 🛡️ Keamanan Password | Password disimpan dalam format hash PBKDF2-SHA256 (bukan teks biasa) |
-| 🗄️ Database Gratis | Menggunakan Cloudflare D1 (SQLite serverless) |
-| 🌐 Multi-User | Mendukung role Admin dan Member dengan hak akses berbeda |
-| ⚙️ Pengaturan Worker | Admin bisa mengubah konfigurasi langsung dari UI |
+| 🗄️ Database Gratis   | Menggunakan Cloudflare D1 (SQLite serverless)                        |
+| 🌐 Multi-User          | Mendukung role Admin dan Member dengan hak akses berbeda             |
+| ⚙️ Pengaturan Worker | Admin bisa mengubah konfigurasi langsung dari UI                     |
 
 ---
 
@@ -250,6 +250,7 @@ pnpm run deploy
 ```
 
 **4. Setup Email Routing di Cloudflare Dashboard:**
+
 - Masuk ke **Cloudflare Dashboard → Email → Email Routing**
 - Buat rule: **Catch-all** → **Worker** → pilih `mailflare-web`
 
@@ -260,32 +261,32 @@ pnpm run deploy
 
 ## 🔑 Peran Pengguna (Roles)
 
-| Role | Akses |
-|---|---|
-| **Admin** | Semua halaman: Dashboard, Users, Worker Settings, Inbox semua user |
-| **Member** | Hanya inbox milik sendiri (`/me/inbox`) |
+| Role             | Akses                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| **Admin**  | Semua halaman: Dashboard, Users, Worker Settings, Inbox semua user |
+| **Member** | Hanya inbox milik sendiri (`/me/inbox`)                          |
 
 ---
 
 ## 📡 Daftar API Endpoint
 
-| Method | Path | Keterangan |
-|---|---|---|
-| `GET` | `/api/health` | Cek status aplikasi |
-| `POST` | `/api/auth/login` | Login pengguna |
-| `GET` | `/api/auth/logout` | Logout pengguna |
-| `GET` | `/api/me` | Info akun yang sedang login |
-| `GET` | `/api/me/inbox` | Inbox milik sendiri |
-| `GET` | `/api/me/emails/:id` | Detail email milik sendiri |
-| `GET` | `/api/users` | Daftar semua pengguna (Admin) |
-| `POST` | `/api/users` | Buat pengguna baru (Admin) |
-| `GET` | `/api/users/:id` | Detail pengguna (Admin) |
-| `PATCH` | `/api/users/:id` | Update pengguna (Admin) |
-| `DELETE` | `/api/users/:id` | Hapus pengguna (Admin) |
-| `GET` | `/api/users/:id/inbox` | Inbox pengguna tertentu (Admin) |
-| `GET` | `/api/dashboard` | Data dashboard (Admin) |
-| `GET` | `/api/worker-settings` | Baca konfigurasi worker (Admin) |
-| `PATCH` | `/api/worker-settings` | Update konfigurasi worker (Admin) |
+| Method     | Path                     | Keterangan                        |
+| ---------- | ------------------------ | --------------------------------- |
+| `GET`    | `/api/health`          | Cek status aplikasi               |
+| `POST`   | `/api/auth/login`      | Login pengguna                    |
+| `GET`    | `/api/auth/logout`     | Logout pengguna                   |
+| `GET`    | `/api/me`              | Info akun yang sedang login       |
+| `GET`    | `/api/me/inbox`        | Inbox milik sendiri               |
+| `GET`    | `/api/me/emails/:id`   | Detail email milik sendiri        |
+| `GET`    | `/api/users`           | Daftar semua pengguna (Admin)     |
+| `POST`   | `/api/users`           | Buat pengguna baru (Admin)        |
+| `GET`    | `/api/users/:id`       | Detail pengguna (Admin)           |
+| `PATCH`  | `/api/users/:id`       | Update pengguna (Admin)           |
+| `DELETE` | `/api/users/:id`       | Hapus pengguna (Admin)            |
+| `GET`    | `/api/users/:id/inbox` | Inbox pengguna tertentu (Admin)   |
+| `GET`    | `/api/dashboard`       | Data dashboard (Admin)            |
+| `GET`    | `/api/worker-settings` | Baca konfigurasi worker (Admin)   |
+| `PATCH`  | `/api/worker-settings` | Update konfigurasi worker (Admin) |
 
 ---
 
@@ -296,8 +297,8 @@ Fitur ini memungkinkan Anda menerima notifikasi di Telegram setiap ada email mas
 ### Cara Setup
 
 1. **Buat bot Telegram** di [@BotFather](https://t.me/BotFather) dan catat token bot.
-
 2. **Isi environment variables** di `.dev.vars` (lokal) atau via `wrangler secret` (production):
+
    ```env
    TELEGRAM_BOT_TOKEN="token_dari_botfather"
    TELEGRAM_WEBHOOK_SECRET="string_acak_32_karakter"
@@ -306,25 +307,27 @@ Fitur ini memungkinkan Anda menerima notifikasi di Telegram setiap ada email mas
    # Opsional: whitelist Telegram User ID (fallback awal sebelum diatur dari UI)
    TELEGRAM_ALLOWED_IDS="123456789,987654321"
    ```
-
 3. **Atur Allowed IDs (Whitelist User Telegram)**
 
    `Allowed IDs` adalah daftar **Telegram User ID** yang diizinkan mengirim command ke bot. Hanya ID yang terdaftar yang bisa menggunakan command seperti `adduser`, `listuser`, `inbox`, dll.
 
    **Cara mendapatkan Telegram User ID Anda:**
+
    - Buka Telegram, cari bot [@userinfobot](https://t.me/userinfobot)
    - Kirim pesan ke bot tersebut — ia akan membalas dengan User ID Anda (berupa angka, contoh: `123456789`)
 
    **Dua cara mengatur Allowed IDs:**
 
-   | Cara | Keterangan |
-   |---|---|
-   | **Dari UI (direkomendasikan)** | Login sebagai admin → buka **/worker/settings** → isi field **Allowed IDs (DB)** dengan ID yang dipisah koma |
+   | Cara                                   | Keterangan                                                                                                                                     |
+   | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+   | **Dari UI (direkomendasikan)**   | Login sebagai admin → buka**/worker/settings** → isi field **Allowed IDs (DB)** dengan ID yang dipisah koma                      |
    | **Dari env var (fallback awal)** | Isi `TELEGRAM_ALLOWED_IDS` di `.dev.vars` atau `wrangler secret`. Ini hanya dipakai jika DB belum pernah menyimpan nilai `allowed_ids` |
 
-   > ⚠️ **Penting:** Setelah Anda menyimpan `Allowed IDs` dari halaman UI (meski dikosongkan), sistem akan selalu menggunakan nilai dari **database**, bukan dari env var. Jadi pastikan nilainya benar sebelum disimpan.
 
+   > ⚠️ **Penting:** Setelah Anda menyimpan `Allowed IDs` dari halaman UI (meski dikosongkan), sistem akan selalu menggunakan nilai dari **database**, bukan dari env var. Jadi pastikan nilainya benar sebelum disimpan.
+   >
 4. **Setelah deploy**, daftarkan webhook bot:
+
    ```bash
    pnpm telegram:webhook:set -- \
      --token "<BOT_TOKEN>" \
@@ -332,8 +335,7 @@ Fitur ini memungkinkan Anda menerima notifikasi di Telegram setiap ada email mas
      --secret "<WEBHOOK_SECRET>" \
      --allowed-updates "message,callback_query"
    ```
-
-4. Di halaman **Worker Settings** aplikasi, isi **Chat ID** Telegram tujuan notifikasi.
+5. Di halaman **Worker Settings** aplikasi, isi **Chat ID** Telegram tujuan notifikasi.
 
 > 📖 Panduan lengkap tersedia di: **[docs/integrasi-telegram-bot.md](./docs/integrasi-telegram-bot.md)**
 
@@ -343,16 +345,16 @@ Fitur ini memungkinkan Anda menerima notifikasi di Telegram setiap ada email mas
 
 ## 📜 NPM Scripts — Perintah yang Tersedia
 
-| Perintah | Fungsi |
-|---|---|
-| `pnpm dev` | Jalankan Vite dev server biasa (tanpa D1) |
-| `pnpm cf:dev` | Jalankan Worker dev mode **dengan D1** (direkomendasikan) |
-| `pnpm check` | Cek error TypeScript / Svelte |
-| `pnpm build` | Build aplikasi untuk production |
-| `pnpm run deploy` | Build + upload ke Cloudflare |
-| `pnpm telegram:webhook:set` | Daftarkan webhook Telegram |
-| `pnpm telegram:webhook:delete` | Hapus webhook Telegram |
-| `pnpm telegram:webhook:info` | Cek info webhook Telegram |
+| Perintah                         | Fungsi                                                         |
+| -------------------------------- | -------------------------------------------------------------- |
+| `pnpm dev`                     | Jalankan Vite dev server biasa (tanpa D1)                      |
+| `pnpm cf:dev`                  | Jalankan Worker dev mode**dengan D1** (direkomendasikan) |
+| `pnpm check`                   | Cek error TypeScript / Svelte                                  |
+| `pnpm build`                   | Build aplikasi untuk production                                |
+| `pnpm run deploy`              | Build + upload ke Cloudflare                                   |
+| `pnpm telegram:webhook:set`    | Daftarkan webhook Telegram                                     |
+| `pnpm telegram:webhook:delete` | Hapus webhook Telegram                                         |
+| `pnpm telegram:webhook:info`   | Cek info webhook Telegram                                      |
 
 ---
 
@@ -390,30 +392,34 @@ cloud-mail-flare/
 ## ❓ Pertanyaan Umum (FAQ)
 
 **Q: Apakah ini benar-benar gratis?**
+
 > Ya! Cloudflare Workers, D1, dan Email Routing memiliki tier gratis yang lebih dari cukup untuk penggunaan pribadi.
 
 **Q: Apakah saya perlu VPS atau server?**
+
 > Tidak. Semua berjalan sebagai Cloudflare Worker — tidak ada server yang perlu dikelola.
 
 **Q: Bagaimana jika saya lupa Setup Token?**
+
 > Lihat kembali nilai `SETUP_TOKEN` di file `.dev.vars` (lokal) atau secrets Cloudflare (production).
 
 **Q: Bisa pakai lebih dari satu domain email?**
+
 > Saat ini sistem menggunakan satu domain email utama. Anda bisa mengaturnya di **Worker Settings → user_email_domain**.
 
 **Q: Apa bedanya `pnpm dev` dan `pnpm cf:dev`?**
+
 > `pnpm dev` menjalankan Vite biasa (cepat tapi tidak bisa akses database D1). `pnpm cf:dev` mensimulasikan lingkungan Cloudflare secara penuh termasuk D1 — gunakan ini untuk development sehari-hari.
 
 ---
 
 ## 📚 Dokumentasi Tambahan
 
-| Dokumen | Isi |
-|---|---|
+| Dokumen                                                              | Isi                                      |
+| -------------------------------------------------------------------- | ---------------------------------------- |
 | [deploy-fullstack-cloudflare.md](./docs/deploy-fullstack-cloudflare.md) | Panduan deployment lengkap ke production |
-| [integrasi-telegram-bot.md](./docs/integrasi-telegram-bot.md) | Setup bot Telegram secara detail |
-| [member-inbox-only.md](./docs/member-inbox-only.md) | Penjelasan mode Member / inbox-only |
-| [SECURITY_AUDIT_CHECKLIST.md](./docs/SECURITY_AUDIT_CHECKLIST.md) | Checklist keamanan aplikasi |
+| [integrasi-telegram-bot.md](./docs/integrasi-telegram-bot.md)           | Setup bot Telegram secara detail         |
+| [member-inbox-only.md](./docs/member-inbox-only.md)                     | Penjelasan mode Member / inbox-only      |
 
 ---
 
