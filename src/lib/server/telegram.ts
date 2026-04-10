@@ -612,7 +612,7 @@ async function handleInboxCommand(context: TelegramCommandContext, args: string[
     lines.join('\n\n'),
     '```',
     '',
-    'Gunakan \\`readmail <email_id>\\` untuk baca detail email\\.'
+    'Gunakan \\`readmail \\<email\_id\\>\\` untuk baca detail email\\.'
   ].join('\n');
 
   await sendTelegramMessage(context.config.token, context.chatId, text);
@@ -940,12 +940,12 @@ function buildHelpMarkdown(): string {
   return [
     '*MailFlare Telegram Commands*',
     '',
-    '\\- \\`adduser <username>\\`',
-    '\\- \\`listuser <asc|desc>\\`',
-    '\\- \\`inbox <username>\\`',
-    '\\- \\`readmail <email_id>\\`',
+    '\\- \\`adduser \\<username\\>\\`',
+    '\\- \\`listuser \\<asc|desc\\>\\`',
+    '\\- \\`inbox \\<username\\>\\`',
+    '\\- \\`readmail \\<email\_id\\>\\`',
     '\\- \\`access\\`',
-    '\\- \\`reset <username>\\`'
+    '\\- \\`reset \\<username\\>\\`'
   ].join('\n');
 }
 
