@@ -717,9 +717,9 @@ async function handleResetCommand(context: TelegramCommandContext, args: string[
     '*Password user berhasil di\\-reset*',
     '',
     '```text',
-    `username : ${extractUsername(user.email)}`,
-    `email    : ${user.email}`,
-    `password : ${password}`,
+    `username : ${sanitizeCodeBlock(extractUsername(user.email))}`,
+    `email    : ${sanitizeCodeBlock(user.email)}`,
+    `password : ${sanitizeCodeBlock(password)}`,
     '```'
   ].join('\n');
 
@@ -763,7 +763,12 @@ async function showUserListPage(
 
   const bodyLines =
     rows.length > 0
-      ? rows.map((row, index) => `${safeOffset + index + 1}. ${extractUsername(String(row.email ?? ''))} | ${String(row.email ?? '')}`)
+      ? rows.map((row, index) => {
+          const username = extractUsername(String(row.email ?? ''));
+          const email = String(row.email ?? '');
+          // Sanitize setiap line yang akan di-display dalam code block
+          return `${safeOffset + index + 1}. ${sanitizeCodeBlock(username)} | ${sanitizeCodeBlock(email)}`;
+        })
       : ['(no users)'];
 
   const text = [
@@ -947,12 +952,12 @@ function buildHelpMarkdown(): string {
   return [
     '*MailFlare Telegram Commands*',
     '',
-    '\\- \\`adduser \\<username\\>\\`',
-    '\\- \\`listuser \\<asc|desc\\>\\`',
-    '\\- \\`inbox \\<username\\>\\`',
-    '\\- \\`readmail \\<email\_id\\>\\`',
-    '\\- \\`access\\`',
-    '\\- \\`reset \\<username\\>\\`'
+    '`/adduser <username>`',
+    '`/listuser <asc\\|desc>`',
+    '`/inbox <username>`',
+    '`/readmail <email_id>`',
+    '`/access`',
+    '`/reset <username>`'
   ].join('\n');
 }
 
@@ -961,10 +966,10 @@ function buildUserCreatedMarkdown(payload: TelegramUserCreatedPayload): string {
     '*User Berhasil Dibuat*',
     '',
     '```text',
-    `username  : ${payload.username}`,
-    `email     : ${payload.email}`,
-    `password  : ${payload.password}`,
-    `created_by: ${payload.createdBy}`,
+    `username  : ${sanitizeCodeBlock(payload.username)}`,
+    `email     : ${sanitizeCodeBlock(payload.email)}`,
+    `password  : ${sanitizeCodeBlock(payload.password)}`,
+    `created_by: ${sanitizeCodeBlock(payload.createdBy)}`,
     `created_at: ${new Date().toISOString()}`,
     '```'
   ].join('\n');
@@ -1354,12 +1359,13 @@ function isMarkdownV2Escaped(value: string): boolean {
 }
 
 function escapeCode(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
+  // Per Telegram MarkdownV2 spec: di dalam backtick, escape backslash, backtick, dan pipe
+  return value.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\|/g, '\\|');
 }
 
 function sanitizeCodeBlock(value: string): string {
-  // Per Telegram MarkdownV2 spec: inside pre/code blocks, only '`' and '\' must be escaped.
-  return value.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
+  // Per Telegram MarkdownV2 spec: inside pre/code blocks, escape '`', '\', and '|'
+  return value.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\|/g, '\\|');
 }
 
 function inlineCodeMd(value: string): string {
