@@ -13,9 +13,10 @@
         [email.sender, email.subject, email.snippet].some((field) => field.toLowerCase().includes(normalizedQuery))
       )
     : data.emails;
-  $: unreadCount = data.emails.filter((email) => !email.isRead).length;
-  $: starredCount = data.emails.filter((email) => email.isStarred).length;
+  $: unreadCount = data.emails.filter((email) => !email.isRead && !email.isArchived).length;
+  $: starredCount = data.emails.filter((email) => email.isStarred && !email.isArchived).length;
   $: archivedCount = data.archivedCount ?? 0;
+  $: inboxCount = Math.max(0, Number(data.currentUser?.totalEmails ?? data.emails.length) - archivedCount);
 </script>
 
 <section class="inbox-only-main">
@@ -40,7 +41,7 @@
     <div class="stats-grid">
       <div class="stat">
         <span>Total Inbox</span>
-        <strong>{data.emails.length}</strong>
+        <strong>{inboxCount}</strong>
       </div>
       <div class="separator" aria-hidden="true"></div>
       <div class="stat">

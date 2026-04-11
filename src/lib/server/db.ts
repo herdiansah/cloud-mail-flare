@@ -821,13 +821,13 @@ export async function getUserInboxFromDb(db: D1Database | undefined, userId: str
       snippet,
       received_at,
       is_read,
-      is_starred
+      is_starred,
+      is_archived
     FROM emails
     WHERE user_id = ?
       AND deleted_at IS NULL
-      AND is_archived = 0
-    ORDER BY received_at DESC
-    LIMIT 50
+    ORDER BY is_archived ASC, received_at DESC
+    LIMIT 100
   `;
   const { results } = await db.prepare(query).bind(userId).all<Record<string, unknown>>();
   return (results ?? []).map((row) => ({
@@ -837,7 +837,8 @@ export async function getUserInboxFromDb(db: D1Database | undefined, userId: str
     snippet: String(row.snippet ?? ''),
     receivedAt: String(row.received_at ?? ''),
     isRead: Number(row.is_read ?? 0) === 1,
-    isStarred: Number(row.is_starred ?? 0) === 1
+    isStarred: Number(row.is_starred ?? 0) === 1,
+    isArchived: Number(row.is_archived ?? 0) === 1
   }));
 }
 
@@ -863,6 +864,7 @@ export async function getEmailByIdFromDb(
         received_at,
         is_read,
         is_starred,
+        is_archived,
         body_text,
         body_html,
         parsed_text,
@@ -871,7 +873,6 @@ export async function getEmailByIdFromDb(
       WHERE id = ?
         AND user_id = ?
         AND deleted_at IS NULL
-        AND is_archived = 0
       LIMIT 1
     `
     )
@@ -900,7 +901,8 @@ export async function getEmailByIdFromDb(
     bodyText,
     bodyHtml,
     isRead: true,
-    isStarred: Number(row.is_starred ?? 0) === 1
+    isStarred: Number(row.is_starred ?? 0) === 1,
+    isArchived: Number(row.is_archived ?? 0) === 1
   };
 }
 
@@ -1311,7 +1313,8 @@ function inboxFallback(userId: string): EmailDto[] {
       snippet: 'We identified throughput improvements in your eu-west-1 routing tables...',
       receivedAt: new Date().toISOString(),
       isRead: false,
-      isStarred: true
+      isStarred: true,
+      isArchived: false
     },
     {
       id: `${userId}-e2`,
@@ -1320,7 +1323,8 @@ function inboxFallback(userId: string): EmailDto[] {
       snippet: 'Your account logged in from a new device...',
       receivedAt: new Date(Date.now() - 3600_000).toISOString(),
       isRead: true,
-      isStarred: false
+      isStarred: false,
+      isArchived: true
     }
   ];
 }
@@ -1342,7 +1346,8 @@ function emailDetailFallback(userId: string, emailId: string): EmailDetailDto | 
     bodyText: summary.snippet,
     bodyHtml: '',
     isRead: summary.isRead,
-    isStarred: summary.isStarred
+    isStarred: summary.isStarred,
+    isArchived: summary.isArchived
   };
 }
 

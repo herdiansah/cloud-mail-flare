@@ -11,18 +11,19 @@
   export let mailboxOnly = false;
 
   $: rowHrefPrefix = emailHrefPrefix || `/users/${userId}/emails`;
-  $: starredCount = emails.filter((email) => email.isStarred).length;
-  $: unreadCount = emails.filter((email) => !email.isRead).length;
+  $: primaryCount = emails.filter((email) => !email.isArchived).length;
+  $: starredCount = emails.filter((email) => email.isStarred && !email.isArchived).length;
+  $: archivedCount = emails.filter((email) => email.isArchived).length;
 
-  type InboxTab = 'primary' | 'starred' | 'unread';
+  type InboxTab = 'primary' | 'starred' | 'archived';
   let activeTab: InboxTab = 'primary';
 
   $: visibleEmails =
     activeTab === 'starred'
-      ? emails.filter((email) => email.isStarred)
-      : activeTab === 'unread'
-        ? emails.filter((email) => !email.isRead)
-        : emails;
+      ? emails.filter((email) => email.isStarred && !email.isArchived)
+      : activeTab === 'archived'
+        ? emails.filter((email) => email.isArchived)
+        : emails.filter((email) => !email.isArchived);
 
   function initials(sender: string): string {
     const plain = sender.replace(/["<>]/g, ' ').trim();
@@ -54,19 +55,19 @@
   {#if !mailboxOnly}
     <div class="header">
       <h2>Inbox</h2>
-      <Badge tone="primary">{emails.length} messages</Badge>
+      <Badge tone="primary">{primaryCount} messages</Badge>
     </div>
   {:else}
     <div class="mailbox-filter">
       <div class="tabs">
         <button type="button" class={`tab ${activeTab === 'primary' ? 'active' : ''}`} on:click={() => (activeTab = 'primary')}>
-          Primary <span>{emails.length}</span>
+          Primary <span>{primaryCount}</span>
         </button>
         <button type="button" class={`tab ${activeTab === 'starred' ? 'active' : ''}`} on:click={() => (activeTab = 'starred')}>
           Starred <span>{starredCount}</span>
         </button>
-        <button type="button" class={`tab ${activeTab === 'unread' ? 'active' : ''}`} on:click={() => (activeTab = 'unread')}>
-          Unread <span>{unreadCount}</span>
+        <button type="button" class={`tab ${activeTab === 'archived' ? 'active' : ''}`} on:click={() => (activeTab = 'archived')}>
+          Archived <span>{archivedCount}</span>
         </button>
       </div>
       <div class="pager">
@@ -101,7 +102,7 @@
         {/each}
       {/if}
     {:else}
-      {#each emails as email (email.id)}
+      {#each visibleEmails as email (email.id)}
         <a href={`${rowHrefPrefix}/${email.id}`} class={`row ${email.isRead ? 'read' : 'unread'}`}>
           <div class="select"><Checkbox /></div>
           <div class="star">

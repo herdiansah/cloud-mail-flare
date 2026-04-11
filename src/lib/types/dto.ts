@@ -28,6 +28,7 @@ export interface EmailDto {
   receivedAt: string;
   isRead: boolean;
   isStarred: boolean;
+  isArchived: boolean;
 }
 
 export interface EmailDetailDto {
@@ -42,6 +43,7 @@ export interface EmailDetailDto {
   bodyHtml: string;
   isRead: boolean;
   isStarred: boolean;
+  isArchived: boolean;
 }
 
 export interface WorkerSettingsDto {

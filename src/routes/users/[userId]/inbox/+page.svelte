@@ -15,9 +15,10 @@
         [email.sender, email.subject, email.snippet].some((field) => field.toLowerCase().includes(normalizedQuery))
       )
     : data.emails;
-  $: unreadCount = data.emails.filter((email) => !email.isRead).length;
-  $: starredCount = data.emails.filter((email) => email.isStarred).length;
+  $: unreadCount = data.emails.filter((email) => !email.isRead && !email.isArchived).length;
+  $: starredCount = data.emails.filter((email) => email.isStarred && !email.isArchived).length;
   $: archivedCount = data.archivedCount ?? 0;
+  $: inboxCount = Math.max(0, Number(data.currentUser?.totalEmails ?? data.emails.length) - archivedCount);
 </script>
 
 {#if data.inboxOnly}
@@ -43,7 +44,7 @@
       <div class="stats-grid">
         <div class="stat">
           <span>Total Inbox</span>
-          <strong>{data.emails.length}</strong>
+          <strong>{inboxCount}</strong>
         </div>
         <div class="separator" aria-hidden="true"></div>
         <div class="stat">
@@ -70,15 +71,48 @@
         showMenuButton={false}
       />
       <div class="content">
-        <InboxTable userId={data.userId} emails={filteredEmails} emailHrefPrefix={`/users/${data.userId}/emails`} />
+        <InboxTable
+          userId={data.userId}
+          emails={filteredEmails}
+          emailHrefPrefix={`/users/${data.userId}/emails`}
+          mailboxOnly={true}
+        />
       </div>
+      <footer class="stats-footer dashboard-footer">
+        <div class="stats-grid">
+          <div class="stat">
+            <span>Total Inbox</span>
+            <strong>{inboxCount}</strong>
+          </div>
+          <div class="separator" aria-hidden="true"></div>
+          <div class="stat">
+            <span>Total Starred</span>
+            <strong>{starredCount}</strong>
+          </div>
+          <div class="separator" aria-hidden="true"></div>
+          <div class="stat">
+            <span>Total Archived</span>
+            <strong>{archivedCount}</strong>
+          </div>
+        </div>
+      </footer>
     </section>
   </div>
 {/if}
 
 <style>
+  .main {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
   .content {
     padding: var(--space-5);
+  }
+
+  .main .content {
+    flex: 1;
   }
 
   .inbox-only-main {
@@ -124,9 +158,16 @@
   }
 
   .stats-footer {
-    margin-top: auto;
     border-top: 1px solid color-mix(in srgb, var(--color-outline), transparent 76%);
     padding: var(--space-5) var(--space-3);
+  }
+
+  .inbox-only-main .stats-footer {
+    margin-top: auto;
+  }
+
+  .dashboard-footer {
+    margin-top: 0;
   }
 
   .stats-grid {
