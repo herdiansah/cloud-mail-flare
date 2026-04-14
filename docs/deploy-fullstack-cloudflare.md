@@ -290,7 +290,68 @@ Runtime behavior:
 - Recipient valid disimpan ke `emails`
 - Jika `forward_inbound=true`, notifikasi Telegram ikut dikirim
 
-## 14) Smoke Test Production
+## 14) Ganti Domain Web UI dan Domain Email Penerima
+
+Bagian ini dipakai jika aplikasi sudah jalan lalu Anda ingin pindah domain.
+
+### A) Ganti domain Web UI (`https://...`)
+
+1. Update `wrangler.toml`:
+   - `[[routes]].pattern = "<app-domain-baru>"`
+   - `[vars].MAILFLARE_NOTIFY_URL = "https://<app-domain-baru>"`
+2. Pastikan DNS/custom domain baru aktif di Cloudflare.
+3. Deploy ulang:
+
+```bash
+pnpm run deploy
+```
+
+4. Jika pakai Telegram webhook, update webhook URL ke:
+   - `https://<app-domain-baru>/api/telegram/webhook`
+5. Verifikasi:
+   - Buka `https://<app-domain-baru>/api/health`
+   - Cek webhook status di `/worker/settings`
+
+### B) Ganti domain email penerima (`username@...`)
+
+1. Tentukan domain email baru.
+2. Update default di `wrangler.toml`:
+   - `[vars].MAILFLARE_USER_DOMAIN = "<mail-domain-baru>"`
+3. Opsional: set juga dari UI `/worker/settings` pada field `User Email Domain` (nilai DB akan diprioritaskan saat runtime).
+4. Di Cloudflare Dashboard `Email -> Email Routing`:
+   - aktifkan domain email baru
+   - buat/ubah rule catch-all `*@<mail-domain-baru>` ke Worker yang sama
+   - pastikan **catch-all domain lama** tidak lagi aktif jika memang domain lama sudah tidak dipakai (agar routing tidak membingungkan)
+5. Deploy ulang:
+
+```bash
+pnpm run deploy
+```
+
+Catatan penting:
+- Perubahan domain tidak otomatis mengubah `users.email` yang sudah ada di DB.
+- Jika ingin user lama ikut pindah domain, lakukan migrasi data `users.email` secara terkontrol.
+
+Contoh pola migrasi (review dulu sebelum eksekusi):
+
+```sql
+-- Contoh: old-domain.com -> new-domain.com
+UPDATE users
+SET email = lower(substr(email, 1, instr(email, '@') - 1)) || '@new-domain.com'
+WHERE lower(substr(email, instr(email, '@') + 1)) = 'old-domain.com';
+```
+
+Setelah migrasi:
+- uji kirim email ke alamat baru
+- pastikan inbox user menerima email
+- pantau log dengan `pnpm exec wrangler tail --format pretty`
+
+Checklist catch-all (wajib):
+- [ ] ada rule catch-all aktif untuk domain email yang sekarang dipakai: `*@<mail-domain-aktif>`
+- [ ] destination catch-all adalah Worker yang benar (`WORKER_NAME`)
+- [ ] tidak ada catch-all usang dari domain lama (kecuali memang sengaja dipertahankan saat masa transisi)
+
+## 15) Smoke Test Production
 
 Ganti `<APP_URL>` dengan `https://<app-domain>`.
 
@@ -318,7 +379,7 @@ Checklist tambahan jika Telegram aktif:
 - [ ] `Default Chat ID` / `Test Chat ID` sesuai skenario pengiriman
 - [ ] Command `apikey` dari Telegram berhasil dijalankan oleh user yang di-allow
 
-## 15) Troubleshooting Cepat
+## 16) Troubleshooting Cepat
 
 Pantau log realtime (langkah pertama saat ada masalah):
 
@@ -366,7 +427,7 @@ Login gagal:
 - pastikan Turnstile token valid
 - cek `TURNSTILE_SITE_KEY` dan `TURNSTILE_SECRET_KEY` sudah terpasang
 
-## 16) Final Checklist (Go-Live)
+## 17) Final Checklist (Go-Live)
 
 - [ ] `wrangler.toml` final dan benar
 - [ ] D1 schema sudah remote apply
